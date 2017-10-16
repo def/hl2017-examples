@@ -40,7 +40,7 @@ func main() {
 	port := os.Getenv("HTTP_PORT")
 	cpuTimeMsFromEnv, err := strconv.Atoi(os.Getenv("CPU_MS_PER_REQ"))
 	if err != nil {
-		log.Println("can't read CPU_MS_PER_REQ", err, "using default")
+		log.Println("can't read env CPU_MS_PER_REQ", err, "using default")
 	} else {
 		cpuTimeMs = cpuTimeMsFromEnv
 	}
