@@ -29,7 +29,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	secondCpuPartMs := cpuTimeMs - firstCpuPartMs
 	log.Println("req", firstCpuPartMs, secondCpuPartMs)
 	loadCpu(time.Duration(firstCpuPartMs)*time.Millisecond)
-	time.Sleep(time.Duration(cpuTimeMs)*time.Millisecond)
+	//time.Sleep(time.Duration(cpuTimeMs)*time.Millisecond)
 	loadCpu(time.Duration(secondCpuPartMs)*time.Millisecond)
 	w.Write([]byte("OK\n"))
 	return
