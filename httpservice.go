@@ -35,14 +35,23 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	factorial(n)
+	err := statsdClient.PrecisionTiming("request_time", time.Since(start))
+	if err != nil {
+		log.Println("failed to send statsd metrics", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Write([]byte("OK\n"))
-	statsdClient.PrecisionTiming("request_time", time.Since(start))
 	return
 }
 
 
 func main() {
 	statsdClient = statsd.NewStatsdClient("127.0.0.1:8125", "httpservice.")
+	err := statsdClient.CreateSocket()
+	if err != nil {
+		panic(err)
+	}
 	port := os.Getenv("HTTP_PORT")
 	http.HandleFunc("/", handler)
 	if port == "" {
