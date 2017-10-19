@@ -47,16 +47,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 
 func main() {
-	statsdClient = statsd.NewStatsdClient("127.0.0.1:8125", "httpservice.")
-	err := statsdClient.CreateSocket()
-	if err != nil {
-		panic(err)
-	}
 	port := os.Getenv("HTTP_PORT")
 	http.HandleFunc("/", handler)
 	if port == "" {
 		log.Println("empty env HTTP_PORT, using default 8080")
 		port = "8080"
+	}
+	statsdClient = statsd.NewStatsdClient("127.0.0.1:8125", "httpservice.port=" + port + ".")
+	err := statsdClient.CreateSocket()
+	if err != nil {
+		panic(err)
 	}
 	log.Println("listening", port)
 	http.ListenAndServe(":" + port, nil)
