@@ -1,49 +1,49 @@
 package main
 
 import (
-	"math/rand"
 	"time"
 	"net/http"
 	"log"
 	"os"
+	"github.com/quipo/statsd"
 	"strconv"
 )
 
 var (
-	cpuTimeMs = 50
+	statsdClient *statsd.StatsdClient
 )
 
-func loadCpu(t time.Duration) {
-	timer := time.NewTimer(t)
-	for {
-		select {
-		case <-timer.C:
-			return
-		default:
-		}
+func factorial(n uint64) (result uint64) {
+	if (n > 0) {
+		result = n * factorial(n-1)
+		return result
 	}
+	return 1
 }
 
+
 func handler(w http.ResponseWriter, r *http.Request) {
-	firstCpuPartMs := rand.Intn(cpuTimeMs)
-	secondCpuPartMs := cpuTimeMs - firstCpuPartMs
-	log.Println("req", firstCpuPartMs, secondCpuPartMs)
-	loadCpu(time.Duration(firstCpuPartMs)*time.Millisecond)
-	//time.Sleep(time.Duration(cpuTimeMs)*time.Millisecond)
-	loadCpu(time.Duration(secondCpuPartMs)*time.Millisecond)
+	start := time.Now()
+	n := 500000
+	nStr := r.Form.Get("n")
+	if nStr != "" {
+		var err error
+		n, err = strconv.ParseUint(nStr, 10, 64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+	factorial(n)
 	w.Write([]byte("OK\n"))
+	statsdClient.PrecisionTiming("request_time", time.Since(start))
 	return
 }
 
 
 func main() {
+	statsdClient = statsd.NewStatsdClient("127.0.0.1:8125", "httpservice.")
 	port := os.Getenv("HTTP_PORT")
-	cpuTimeMsFromEnv, err := strconv.Atoi(os.Getenv("CPU_MS_PER_REQ"))
-	if err != nil {
-		log.Println("can't read env CPU_MS_PER_REQ", err, "using default")
-	} else {
-		cpuTimeMs = cpuTimeMsFromEnv
-	}
 	http.HandleFunc("/", handler)
 	if port == "" {
 		log.Println("empty env HTTP_PORT, using default 8080")
