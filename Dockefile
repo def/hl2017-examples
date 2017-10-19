@@ -1,0 +1,14 @@
+FROM golang:1.8
+
+ADD . /go/src/github.com/def/hl2017-example
+
+# Build the outyet command inside the container.
+# (You may fetch or manage dependencies here,
+# either manually or with a tool like "godep".)
+RUN go install github.com/def/hl2017-example
+
+# Run the outyet command by default when the container starts.
+CMD /go/bin/hl2017-example
+
+# Document that the service listens on port 8080.
+EXPOSE 8080
