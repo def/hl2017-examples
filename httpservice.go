@@ -25,7 +25,7 @@ func factorial(n uint64) (result uint64) {
 func handler(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	var n uint64 = 500000
-	nStr := r.Form.Get("n")
+	nStr := r.URL.Query().Get("n")
 	if nStr != "" {
 		var err error
 		n, err = strconv.ParseUint(nStr, 10, 64)
