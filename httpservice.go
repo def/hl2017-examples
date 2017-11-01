@@ -7,6 +7,7 @@ import (
 	"os"
 	"github.com/quipo/statsd"
 	"strconv"
+	"math/rand"
 )
 
 var (
@@ -35,13 +36,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	factorial(n)
+	time.Sleep(20 * time.Millisecond)
 	err := statsdClient.PrecisionTiming("request_time", time.Since(start))
 	if err != nil {
 		log.Println("failed to send statsd metrics", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Write([]byte("OK\n"))
+	resp := make([]byte, 50000)
+	rand.Read(resp)
+	w.Write(resp)
 	return
 }
 
