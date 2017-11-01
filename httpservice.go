@@ -12,6 +12,8 @@ import (
 
 var (
 	statsdClient *statsd.StatsdClient
+	datafilePath string
+	datafileSize int64
 )
 
 func factorial(n uint64) (result uint64) {
@@ -22,30 +24,53 @@ func factorial(n uint64) (result uint64) {
 	return 1
 }
 
-
 func handler(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-	var n uint64 = 500000
 	nStr := r.URL.Query().Get("n")
-	if nStr != "" {
-		var err error
-		n, err = strconv.ParseUint(nStr, 10, 64)
+	bStr := r.URL.Query().Get("b")
+	switch {
+	case nStr != "":
+		n, err := strconv.ParseUint(nStr, 10, 64)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		factorial(n)
+		time.Sleep(20 * time.Millisecond)
+		resp := make([]byte, 50000)
+		rand.Read(resp)
+		w.Write(resp)
+	case bStr != "":
+		b, err := strconv.ParseInt(bStr, 10, 64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		f, err := os.Open(datafilePath)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		randLimit := datafileSize - b
+		if randLimit < 0 {
+			http.Error(w, "invalid size", http.StatusBadRequest)
+			return
+		}
+		data := make([]byte, int(b))
+		if _, err := f.ReadAt(data, rand.Int63n(randLimit)); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		w.Write(data)
 	}
-	factorial(n)
-	time.Sleep(20 * time.Millisecond)
 	err := statsdClient.PrecisionTiming("request_time", time.Since(start))
 	if err != nil {
 		log.Println("failed to send statsd metrics", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	resp := make([]byte, 50000)
-	rand.Read(resp)
-	w.Write(resp)
+
 	return
 }
 
@@ -62,6 +87,18 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	datafilePath = os.Getenv("DATAFILE_PATH")
+	datafile, err := os.Open(datafilePath)
+	if err != nil {
+		panic(err)
+	}
+	st, err := datafile.Stat()
+	if err != nil {
+		panic(err)
+	}
+	datafileSize = st.Size()
+	log.Println("datafile size", datafileSize)
+	datafile.Close()
 	log.Println("listening", port)
 	http.ListenAndServe(":" + port, nil)
 }
